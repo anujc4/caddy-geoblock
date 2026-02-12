@@ -35,7 +35,9 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				db_path /path/to/GeoLite2-City.mmdb
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/GeoLite2-City.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/GeoLite2-City.mmdb"},
+				},
 			},
 		},
 		{
@@ -45,9 +47,11 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				db_path /path/to/GeoLite2-ASN.mmdb
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{
-					"/path/to/GeoLite2-City.mmdb",
-					"/path/to/GeoLite2-ASN.mmdb",
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{
+						"/path/to/GeoLite2-City.mmdb",
+						"/path/to/GeoLite2-ASN.mmdb",
+					},
 				},
 			},
 		},
@@ -57,9 +61,11 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				db_path /path/to/City.mmdb /path/to/ASN.mmdb
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{
-					"/path/to/City.mmdb",
-					"/path/to/ASN.mmdb",
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{
+						"/path/to/City.mmdb",
+						"/path/to/ASN.mmdb",
+					},
 				},
 			},
 		},
@@ -70,8 +76,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				allow_countries US CA GB
 			}`,
 			expected: Handler{
-				DatabasePaths:  []string{"/path/to/db.mmdb"},
-				AllowCountries: []string{"US", "CA", "GB"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths:  []string{"/path/to/db.mmdb"},
+					AllowCountries: []string{"US", "CA", "GB"},
+				},
 			},
 		},
 		{
@@ -81,8 +89,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				deny_countries CN RU KP
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				DenyCountries: []string{"CN", "RU", "KP"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					DenyCountries: []string{"CN", "RU", "KP"},
+				},
 			},
 		},
 		{
@@ -92,8 +102,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				allow_continents NA EU
 			}`,
 			expected: Handler{
-				DatabasePaths:   []string{"/path/to/db.mmdb"},
-				AllowContinents: []string{"NA", "EU"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths:   []string{"/path/to/db.mmdb"},
+					AllowContinents: []string{"NA", "EU"},
+				},
 			},
 		},
 		{
@@ -103,8 +115,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				deny_continents AS AF
 			}`,
 			expected: Handler{
-				DatabasePaths:  []string{"/path/to/db.mmdb"},
-				DenyContinents: []string{"AS", "AF"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths:  []string{"/path/to/db.mmdb"},
+					DenyContinents: []string{"AS", "AF"},
+				},
 			},
 		},
 		{
@@ -114,8 +128,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				allow_subdivisions CA NY TX
 			}`,
 			expected: Handler{
-				DatabasePaths:     []string{"/path/to/db.mmdb"},
-				AllowSubdivisions: []string{"CA", "NY", "TX"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths:     []string{"/path/to/db.mmdb"},
+					AllowSubdivisions: []string{"CA", "NY", "TX"},
+				},
 			},
 		},
 		{
@@ -125,8 +141,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				deny_subdivisions FL OH
 			}`,
 			expected: Handler{
-				DatabasePaths:    []string{"/path/to/db.mmdb"},
-				DenySubdivisions: []string{"FL", "OH"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths:    []string{"/path/to/db.mmdb"},
+					DenySubdivisions: []string{"FL", "OH"},
+				},
 			},
 		},
 		{
@@ -136,8 +154,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				allow_cities "New York" "Los Angeles"
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				AllowCities:   []string{"New York", "Los Angeles"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					AllowCities:   []string{"New York", "Los Angeles"},
+				},
 			},
 		},
 		{
@@ -147,8 +167,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				deny_cities Beijing Moscow
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				DenyCities:    []string{"Beijing", "Moscow"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					DenyCities:    []string{"Beijing", "Moscow"},
+				},
 			},
 		},
 		{
@@ -158,8 +180,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				allow_asn 15169 13335
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				AllowASN:      []string{"15169", "13335"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					AllowASN:      []string{"15169", "13335"},
+				},
 			},
 		},
 		{
@@ -169,8 +193,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				deny_asn 12345 67890
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				DenyASN:       []string{"12345", "67890"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					DenyASN:       []string{"12345", "67890"},
+				},
 			},
 		},
 		{
@@ -180,8 +206,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				allow_asn_org Google Cloudflare
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				AllowASNOrg:   []string{"Google", "Cloudflare"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					AllowASNOrg:   []string{"Google", "Cloudflare"},
+				},
 			},
 		},
 		{
@@ -191,8 +219,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				deny_asn_org "Bad Hosting"
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				DenyASNOrg:    []string{"Bad Hosting"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					DenyASNOrg:    []string{"Bad Hosting"},
+				},
 			},
 		},
 		{
@@ -202,8 +232,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				allow_ip_ranges 10.0.0.0/8 192.168.0.0/16
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				AllowIPRanges: []string{"10.0.0.0/8", "192.168.0.0/16"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					AllowIPRanges: []string{"10.0.0.0/8", "192.168.0.0/16"},
+				},
 			},
 		},
 		{
@@ -213,8 +245,10 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				deny_ip_ranges 1.2.3.0/24 5.6.7.0/24
 			}`,
 			expected: Handler{
-				DatabasePaths: []string{"/path/to/db.mmdb"},
-				DenyIPRanges:  []string{"1.2.3.0/24", "5.6.7.0/24"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+					DenyIPRanges:  []string{"1.2.3.0/24", "5.6.7.0/24"},
+				},
 			},
 		},
 		{
@@ -224,7 +258,9 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				blocked_status 451
 			}`,
 			expected: Handler{
-				DatabasePaths:     []string{"/path/to/db.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+				},
 				BlockedStatusCode: 451,
 			},
 		},
@@ -235,7 +271,9 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				blocked_message Forbidden
 			}`,
 			expected: Handler{
-				DatabasePaths:  []string{"/path/to/db.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+				},
 				BlockedMessage: "Forbidden",
 			},
 		},
@@ -246,7 +284,9 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				blocked_message Access denied from your location
 			}`,
 			expected: Handler{
-				DatabasePaths:  []string{"/path/to/db.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+				},
 				BlockedMessage: "Access denied from your location",
 			},
 		},
@@ -257,7 +297,9 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				blocked_message "Blocked: {geoblock.country_code}"
 			}`,
 			expected: Handler{
-				DatabasePaths:  []string{"/path/to/db.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+				},
 				BlockedMessage: "Blocked: {geoblock.country_code}",
 			},
 		},
@@ -276,13 +318,15 @@ func TestUnmarshalCaddyfile(t *testing.T) {
 				blocked_message Access denied
 			}`,
 			expected: Handler{
-				DatabasePaths:     []string{"/path/to/GeoLite2-City.mmdb", "/path/to/GeoLite2-ASN.mmdb"},
-				AllowCountries:    []string{"US", "CA"},
-				DenyCountries:     []string{"CN", "RU"},
-				AllowContinents:   []string{"NA", "EU"},
-				DenyASN:           []string{"12345"},
-				AllowIPRanges:     []string{"10.0.0.0/8"},
-				DenyIPRanges:      []string{"1.2.3.0/24"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths:   []string{"/path/to/GeoLite2-City.mmdb", "/path/to/GeoLite2-ASN.mmdb"},
+					AllowCountries:  []string{"US", "CA"},
+					DenyCountries:   []string{"CN", "RU"},
+					AllowContinents: []string{"NA", "EU"},
+					DenyASN:         []string{"12345"},
+					AllowIPRanges:   []string{"10.0.0.0/8"},
+					DenyIPRanges:    []string{"1.2.3.0/24"},
+				},
 				BlockedStatusCode: 403,
 				BlockedMessage:    "Access denied",
 			},

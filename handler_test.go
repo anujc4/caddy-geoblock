@@ -204,7 +204,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Deny country",
 			handler: Handler{
-				DenyCountries: []string{"CN", "RU"},
+				GeoFilterConfig: GeoFilterConfig{
+					DenyCountries: []string{"CN", "RU"},
+				},
 			},
 			record: &GeoRecord{
 				Country: CountryRecord{ISOCode: "CN"},
@@ -215,7 +217,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Allow country",
 			handler: Handler{
-				AllowCountries: []string{"US", "CA"},
+				GeoFilterConfig: GeoFilterConfig{
+					AllowCountries: []string{"US", "CA"},
+				},
 			},
 			record: &GeoRecord{
 				Country: CountryRecord{ISOCode: "US"},
@@ -226,7 +230,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Country not in allow list",
 			handler: Handler{
-				AllowCountries: []string{"US", "CA"},
+				GeoFilterConfig: GeoFilterConfig{
+					AllowCountries: []string{"US", "CA"},
+				},
 			},
 			record: &GeoRecord{
 				Country: CountryRecord{ISOCode: "GB"},
@@ -237,7 +243,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Deny continent",
 			handler: Handler{
-				DenyContinents: []string{"AS"},
+				GeoFilterConfig: GeoFilterConfig{
+					DenyContinents: []string{"AS"},
+				},
 			},
 			record: &GeoRecord{
 				Country:   CountryRecord{ISOCode: "CN"},
@@ -249,7 +257,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Deny ASN",
 			handler: Handler{
-				DenyASN: []string{"12345", "67890"},
+				GeoFilterConfig: GeoFilterConfig{
+					DenyASN: []string{"12345", "67890"},
+				},
 			},
 			record: &GeoRecord{
 				Country:                CountryRecord{ISOCode: "US"},
@@ -261,7 +271,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Deny ASN org by substring",
 			handler: Handler{
-				DenyASNOrg: []string{"Malicious Hosting"},
+				GeoFilterConfig: GeoFilterConfig{
+					DenyASNOrg: []string{"Malicious Hosting"},
+				},
 			},
 			record: &GeoRecord{
 				Country:                      CountryRecord{ISOCode: "US"},
@@ -274,7 +286,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Deny subdivision",
 			handler: Handler{
-				DenySubdivisions: []string{"CA"},
+				GeoFilterConfig: GeoFilterConfig{
+					DenySubdivisions: []string{"CA"},
+				},
 			},
 			record: &GeoRecord{
 				Country: CountryRecord{ISOCode: "US"},
@@ -288,7 +302,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Deny city",
 			handler: Handler{
-				DenyCities: []string{"Beijing"},
+				GeoFilterConfig: GeoFilterConfig{
+					DenyCities: []string{"Beijing"},
+				},
 			},
 			record: &GeoRecord{
 				Country: CountryRecord{ISOCode: "CN"},
@@ -300,8 +316,10 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Multiple rules - first match wins",
 			handler: Handler{
-				DenyCountries:  []string{"CN"},
-				DenyContinents: []string{"AS"},
+				GeoFilterConfig: GeoFilterConfig{
+					DenyCountries:  []string{"CN"},
+					DenyContinents: []string{"AS"},
+				},
 			},
 			record: &GeoRecord{
 				Country:   CountryRecord{ISOCode: "CN"},
@@ -313,7 +331,9 @@ func TestHandler_isBlocked(t *testing.T) {
 		{
 			name: "Unknown country with UNK denied",
 			handler: Handler{
-				DenyCountries: []string{"UNK"},
+				GeoFilterConfig: GeoFilterConfig{
+					DenyCountries: []string{"UNK"},
+				},
 			},
 			record:        &GeoRecord{},
 			expectBlocked: true,
@@ -340,7 +360,9 @@ func TestHandler_Validate(t *testing.T) {
 		{
 			name: "Valid configuration",
 			handler: Handler{
-				DatabasePaths:     []string{"/path/to/db.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+				},
 				BlockedStatusCode: 403,
 			},
 			expectError: false,
@@ -356,7 +378,9 @@ func TestHandler_Validate(t *testing.T) {
 		{
 			name: "Empty database paths slice",
 			handler: Handler{
-				DatabasePaths:     []string{},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{},
+				},
 				BlockedStatusCode: 403,
 			},
 			expectError: true,
@@ -365,7 +389,9 @@ func TestHandler_Validate(t *testing.T) {
 		{
 			name: "Invalid status code - too low",
 			handler: Handler{
-				DatabasePaths:     []string{"/path/to/db.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+				},
 				BlockedStatusCode: 50,
 			},
 			expectError: true,
@@ -374,7 +400,9 @@ func TestHandler_Validate(t *testing.T) {
 		{
 			name: "Invalid status code - too high",
 			handler: Handler{
-				DatabasePaths:     []string{"/path/to/db.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+				},
 				BlockedStatusCode: 600,
 			},
 			expectError: true,
@@ -383,7 +411,9 @@ func TestHandler_Validate(t *testing.T) {
 		{
 			name: "Zero status code is valid (will use default)",
 			handler: Handler{
-				DatabasePaths:     []string{"/path/to/db.mmdb"},
+				GeoFilterConfig: GeoFilterConfig{
+					DatabasePaths: []string{"/path/to/db.mmdb"},
+				},
 				BlockedStatusCode: 0,
 			},
 			expectError: false,
@@ -392,6 +422,8 @@ func TestHandler_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Create a filter for the handler to use during validation
+			tt.handler.filter = NewGeoFilter(&tt.handler.GeoFilterConfig, nil)
 			err := tt.handler.Validate()
 			if tt.expectError {
 				assert.Error(t, err)
