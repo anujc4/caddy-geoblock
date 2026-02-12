@@ -90,20 +90,20 @@ func (m *Matcher) Cleanup() error {
 	return nil
 }
 
-// Match returns true if the request matches the geo-blocking criteria
-// (i.e., the request would be blocked).
-func (m Matcher) Match(r *http.Request) bool {
+// MatchWithError returns true if the request matches the geo-blocking criteria
+// (i.e., the request would be blocked). It implements caddyhttp.RequestMatcherWithError.
+func (m Matcher) MatchWithError(r *http.Request) (bool, error) {
 	// Get client IP from Caddy's context
 	clientIPStr, ok := caddyhttp.GetVar(r.Context(), caddyhttp.ClientIPVarKey).(string)
 	if !ok || clientIPStr == "" {
 		m.logger.Warn("failed to get client IP from context")
-		return false
+		return false, nil
 	}
 
 	clientIP := ParseIP(clientIPStr)
 	if clientIP == nil {
 		m.logger.Warn("failed to parse client IP", zap.String("ip", clientIPStr))
-		return false
+		return false, nil
 	}
 
 	// Perform the geo filtering check
@@ -113,7 +113,14 @@ func (m Matcher) Match(r *http.Request) bool {
 	repl := r.Context().Value(caddy.ReplacerCtxKey).(*caddy.Replacer)
 	m.setPlaceholders(r, repl, result)
 
-	return result.Blocked
+	return result.Blocked, nil
+}
+
+// Match returns true if the request matches the geo-blocking criteria.
+// Deprecated: Use MatchWithError instead. This method is kept for backward compatibility.
+func (m Matcher) Match(r *http.Request) bool {
+	match, _ := m.MatchWithError(r)
+	return match
 }
 
 // setPlaceholders sets all geoblock placeholders in the request context.
@@ -324,9 +331,9 @@ func (m *Matcher) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 // Interface guards
 var (
-	_ caddy.Provisioner        = (*Matcher)(nil)
-	_ caddy.Validator          = (*Matcher)(nil)
-	_ caddy.CleanerUpper       = (*Matcher)(nil)
-	_ caddyhttp.RequestMatcher = (*Matcher)(nil)
-	_ caddyfile.Unmarshaler    = (*Matcher)(nil)
+	_ caddy.Provisioner                 = (*Matcher)(nil)
+	_ caddy.Validator                   = (*Matcher)(nil)
+	_ caddy.CleanerUpper                = (*Matcher)(nil)
+	_ caddyhttp.RequestMatcherWithError = (*Matcher)(nil)
+	_ caddyfile.Unmarshaler             = (*Matcher)(nil)
 )
