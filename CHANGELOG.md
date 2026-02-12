@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-02-12
+
+### Fixed
+
+- Implement `RequestMatcherWithError` interface to fix deprecation warning with Caddy v2.10+
+
 ## [0.1.0] - 2026-02-12
 
 ### Added
@@ -39,5 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated quic-go to v0.57.0 to address CVE
 
-[Unreleased]: https://github.com/anujc4/caddy-geoblock/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/anujc4/caddy-geoblock/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/anujc4/caddy-geoblock/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/anujc4/caddy-geoblock/releases/tag/v0.1.0
