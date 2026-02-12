@@ -463,3 +463,290 @@ func TestIntegration_CaddyfileConfig(t *testing.T) {
 	// So this just tests that the config parses and server starts
 	tester.AssertGetResponse("http://localhost:8080", 200, "OK")
 }
+
+func TestIntegration_MatcherDenyCountries(t *testing.T) {
+	// Config that uses the geoblock matcher to route blocked requests to a different handler
+	config := `{
+		"admin": {"listen": "localhost:2999"},
+		"apps": {
+			"http": {
+				"servers": {
+					"test": {
+						"listen": [":8080"],
+						"trusted_proxies": {
+							"source": "static",
+							"ranges": ["127.0.0.1/8", "::1/128"]
+						},
+						"routes": [
+							{
+								"match": [{
+									"geoblock": {
+										"db_paths": ["testdata/GeoIP2-Country-Test.mmdb"],
+										"deny_countries": ["CN"]
+									}
+								}],
+								"handle": [{
+									"handler": "static_response",
+									"status_code": 451,
+									"body": "Content not available in your region"
+								}]
+							},
+							{
+								"handle": [{
+									"handler": "static_response",
+									"status_code": 200,
+									"body": "Welcome!"
+								}]
+							}
+						]
+					}
+				}
+			}
+		}
+	}`
+
+	tester := caddytest.NewTester(t)
+	tester.InitServer(config, "json")
+
+	tests := []struct {
+		name           string
+		clientIP       string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{"UK IP should get welcome", testIPUnitedKingdom, 200, "Welcome!"},
+		{"US IP should get welcome", testIPUnitedStates, 200, "Welcome!"},
+		{"China IP should get blocked page", testIPChina, 451, "Content not available in your region"},
+		{"Private IP should get welcome", testIPPrivate, 200, "Welcome!"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", "http://localhost:8080", nil)
+			require.NoError(t, err)
+			req.Header.Set("X-Forwarded-For", tt.clientIP)
+
+			resp := tester.AssertResponseCode(req, tt.expectedStatus)
+			defer resp.Body.Close()
+
+			body := make([]byte, 1024)
+			n, _ := resp.Body.Read(body)
+			assert.Contains(t, string(body[:n]), tt.expectedBody)
+		})
+	}
+}
+
+func TestIntegration_MatcherAllowCountries(t *testing.T) {
+	// Config that uses the geoblock matcher with allow list
+	config := `{
+		"admin": {"listen": "localhost:2999"},
+		"apps": {
+			"http": {
+				"servers": {
+					"test": {
+						"listen": [":8080"],
+						"trusted_proxies": {
+							"source": "static",
+							"ranges": ["127.0.0.1/8", "::1/128"]
+						},
+						"routes": [
+							{
+								"match": [{
+									"geoblock": {
+										"db_paths": ["testdata/GeoIP2-Country-Test.mmdb"],
+										"allow_countries": ["US", "GB"]
+									}
+								}],
+								"handle": [{
+									"handler": "static_response",
+									"status_code": 403,
+									"body": "Geo-restricted content"
+								}]
+							},
+							{
+								"handle": [{
+									"handler": "static_response",
+									"status_code": 200,
+									"body": "Welcome!"
+								}]
+							}
+						]
+					}
+				}
+			}
+		}
+	}`
+
+	tester := caddytest.NewTester(t)
+	tester.InitServer(config, "json")
+
+	tests := []struct {
+		name           string
+		clientIP       string
+		expectedStatus int
+	}{
+		{"UK IP is in allow list - not blocked", testIPUnitedKingdom, 200},
+		{"US IP is in allow list - not blocked", testIPUnitedStates, 200},
+		{"Sweden IP not in allow list - blocked", testIPSweden, 403},
+		{"China IP not in allow list - blocked", testIPChina, 403},
+		{"Private IP always allowed", testIPPrivate, 200},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", "http://localhost:8080", nil)
+			require.NoError(t, err)
+			req.Header.Set("X-Forwarded-For", tt.clientIP)
+
+			resp := tester.AssertResponseCode(req, tt.expectedStatus)
+			resp.Body.Close()
+		})
+	}
+}
+
+func TestIntegration_MatcherWithPlaceholders(t *testing.T) {
+	// Config that uses the geoblock matcher and accesses placeholders in the response
+	config := `{
+		"admin": {"listen": "localhost:2999"},
+		"apps": {
+			"http": {
+				"servers": {
+					"test": {
+						"listen": [":8080"],
+						"trusted_proxies": {
+							"source": "static",
+							"ranges": ["127.0.0.1/8", "::1/128"]
+						},
+						"routes": [
+							{
+								"match": [{
+									"geoblock": {
+										"db_paths": ["testdata/GeoIP2-Country-Test.mmdb"],
+										"deny_countries": ["CN"]
+									}
+								}],
+								"handle": [{
+									"handler": "static_response",
+									"status_code": 451,
+									"body": "Blocked: country={geoblock.country_code}, blocked={geoblock.blocked}"
+								}]
+							},
+							{
+								"handle": [{
+									"handler": "static_response",
+									"status_code": 200,
+									"body": "Welcome from {geoblock.country_code}! blocked={geoblock.blocked}"
+								}]
+							}
+						]
+					}
+				}
+			}
+		}
+	}`
+
+	tester := caddytest.NewTester(t)
+	tester.InitServer(config, "json")
+
+	// Test blocked request has placeholders set
+	t.Run("Blocked request has placeholders", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "http://localhost:8080", nil)
+		require.NoError(t, err)
+		req.Header.Set("X-Forwarded-For", testIPChina)
+
+		resp := tester.AssertResponseCode(req, 451)
+		defer resp.Body.Close()
+
+		body := make([]byte, 1024)
+		n, _ := resp.Body.Read(body)
+		bodyStr := string(body[:n])
+
+		assert.Contains(t, bodyStr, "country=CN")
+		assert.Contains(t, bodyStr, "blocked=true")
+	})
+
+	// Test non-blocked request also has placeholders set by matcher evaluation
+	t.Run("Non-blocked request has placeholders from matcher", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "http://localhost:8080", nil)
+		require.NoError(t, err)
+		req.Header.Set("X-Forwarded-For", testIPUnitedKingdom)
+
+		resp := tester.AssertResponseCode(req, 200)
+		defer resp.Body.Close()
+
+		body := make([]byte, 1024)
+		n, _ := resp.Body.Read(body)
+		bodyStr := string(body[:n])
+
+		// The body format is "Welcome from {geoblock.country_code}! blocked={geoblock.blocked}"
+		// which expands to "Welcome from GB! blocked=false"
+		assert.Contains(t, bodyStr, "from GB")
+		assert.Contains(t, bodyStr, "blocked=false")
+	})
+}
+
+func TestIntegration_MatcherIPRanges(t *testing.T) {
+	// Config that uses the geoblock matcher with IP ranges
+	config := `{
+		"admin": {"listen": "localhost:2999"},
+		"apps": {
+			"http": {
+				"servers": {
+					"test": {
+						"listen": [":8080"],
+						"trusted_proxies": {
+							"source": "static",
+							"ranges": ["127.0.0.1/8", "::1/128"]
+						},
+						"routes": [
+							{
+								"match": [{
+									"geoblock": {
+										"db_paths": ["testdata/GeoIP2-Country-Test.mmdb"],
+										"deny_ip_ranges": ["81.2.69.142/32"]
+									}
+								}],
+								"handle": [{
+									"handler": "static_response",
+									"status_code": 403,
+									"body": "IP blocked"
+								}]
+							},
+							{
+								"handle": [{
+									"handler": "static_response",
+									"status_code": 200,
+									"body": "OK"
+								}]
+							}
+						]
+					}
+				}
+			}
+		}
+	}`
+
+	tester := caddytest.NewTester(t)
+	tester.InitServer(config, "json")
+
+	tests := []struct {
+		name           string
+		clientIP       string
+		expectedStatus int
+	}{
+		{"Blocked IP range", "81.2.69.142", 403},
+		{"Allowed IP", "81.2.69.143", 200},
+		{"Other IP", testIPUnitedStates, 200},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", "http://localhost:8080", nil)
+			require.NoError(t, err)
+			req.Header.Set("X-Forwarded-For", tt.clientIP)
+
+			resp := tester.AssertResponseCode(req, tt.expectedStatus)
+			resp.Body.Close()
+		})
+	}
+}
