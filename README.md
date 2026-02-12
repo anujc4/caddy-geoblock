@@ -78,9 +78,16 @@ geoblock {
 }
 ```
 
+## Usage Modes
+
+This module can be used in two ways:
+
+1. **Handler mode**: Blocks requests directly and returns an error response
+2. **Matcher mode**: Matches requests for custom routing
+
 ## Examples
 
-### Block specific countries
+### Handler: Block specific countries
 
 ```caddyfile
 :80 {
@@ -94,7 +101,7 @@ geoblock {
 }
 ```
 
-### Allow only specific countries
+### Handler: Allow only specific countries
 
 ```caddyfile
 :80 {
@@ -109,7 +116,7 @@ geoblock {
 }
 ```
 
-### Block by ASN with multiple databases
+### Handler: Block by ASN with multiple databases
 
 ```caddyfile
 :80 {
@@ -128,7 +135,7 @@ geoblock {
 }
 ```
 
-### IP range based access control
+### Handler: IP range based access control
 
 ```caddyfile
 :80 {
@@ -146,6 +153,47 @@ geoblock {
     }
 
     respond "OK" 200
+}
+```
+
+### Matcher: Serve different content to geo-blocked visitors
+
+```caddyfile
+:80 {
+    @blocked {
+        geoblock {
+            db_path /usr/share/GeoIP/GeoLite2-Country.mmdb
+            deny_countries CN RU KP
+        }
+    }
+
+    handle @blocked {
+        root * /var/www/blocked
+        file_server
+    }
+
+    handle {
+        root * /var/www/html
+        file_server
+    }
+}
+```
+
+### Matcher: JSON API Configuration
+
+```json
+{
+    "match": [{
+        "geoblock": {
+            "db_paths": ["/path/to/GeoLite2-Country.mmdb"],
+            "deny_countries": ["CN", "RU"]
+        }
+    }],
+    "handle": [{
+        "handler": "static_response",
+        "status_code": 451,
+        "body": "Not available in {geoblock.country_name}"
+    }]
 }
 ```
 
