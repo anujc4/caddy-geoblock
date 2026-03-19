@@ -3,7 +3,7 @@ module github.com/anujc4/caddy-geoblock
 go 1.25.0
 
 require (
-	github.com/caddyserver/caddy/v2 v2.11.1
+	github.com/caddyserver/caddy/v2 v2.11.2
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
