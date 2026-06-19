@@ -298,3 +298,118 @@ func TestIPRangeChecker_MultipleRanges(t *testing.T) {
 		})
 	}
 }
+
+const (
+	testCountryDB = "testdata/GeoIP2-Country-Test.mmdb"
+	testCityDB    = "testdata/GeoIP2-City-Test.mmdb"
+	testASNDB     = "testdata/GeoLite2-ASN-Test.mmdb"
+)
+
+func TestDatabaseManager_LoadDatabase(t *testing.T) {
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+
+	require.NoError(t, m.LoadDatabase(testCountryDB))
+	assert.Len(t, m.databases, 1)
+}
+
+func TestDatabaseManager_LoadDatabase_NonExistent(t *testing.T) {
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+
+	err := m.LoadDatabase("testdata/does-not-exist.mmdb")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to open MaxMind database")
+}
+
+func TestDatabaseManager_LoadDatabase_Duplicate(t *testing.T) {
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+
+	require.NoError(t, m.LoadDatabase(testCountryDB))
+	require.NoError(t, m.LoadDatabase(testCountryDB))
+	assert.Len(t, m.databases, 1, "duplicate path should be a no-op")
+}
+
+func TestDatabaseManager_Lookup_NoDatabases(t *testing.T) {
+	m := NewDatabaseManager()
+
+	_, err := m.Lookup(net.ParseIP("8.8.8.8"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no databases loaded")
+}
+
+func TestDatabaseManager_Lookup_KnownIP(t *testing.T) {
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+	require.NoError(t, m.LoadDatabase(testCountryDB))
+
+	record, err := m.Lookup(net.ParseIP("81.2.69.142"))
+	require.NoError(t, err)
+	require.NotNil(t, record)
+	assert.Equal(t, "GB", record.Country.ISOCode)
+}
+
+func TestDatabaseManager_Lookup_UnknownIP(t *testing.T) {
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+	require.NoError(t, m.LoadDatabase(testCountryDB))
+
+	// 192.168.1.1 is not present in any MaxMind test fixture.
+	record, err := m.Lookup(net.ParseIP("192.168.1.1"))
+	require.NoError(t, err)
+	require.NotNil(t, record)
+	assert.True(t, record.IsEmpty(), "private IP should produce empty record")
+}
+
+func TestDatabaseManager_Lookup_InvalidIP(t *testing.T) {
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+	require.NoError(t, m.LoadDatabase(testCountryDB))
+
+	// A net.IP with an invalid length cannot be converted to netip.Addr.
+	_, err := m.Lookup(net.IP{1, 2, 3})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid IP address")
+}
+
+func TestDatabaseManager_Lookup_IPv4MappedIPv6(t *testing.T) {
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+	require.NoError(t, m.LoadDatabase(testCountryDB))
+
+	// 16-byte IPv4-mapped IPv6 form of 81.2.69.142. Without Unmap() this
+	// would look up an IPv6 address that is not in the test database.
+	ip := net.ParseIP("81.2.69.142").To16()
+	require.NotNil(t, ip)
+
+	record, err := m.Lookup(ip)
+	require.NoError(t, err)
+	require.NotNil(t, record)
+	assert.Equal(t, "GB", record.Country.ISOCode, "IPv4-mapped IPv6 should resolve via Unmap()")
+}
+
+func TestDatabaseManager_Lookup_MultipleDatabases(t *testing.T) {
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+
+	require.NoError(t, m.LoadDatabase(testCityDB))
+	require.NoError(t, m.LoadDatabase(testASNDB))
+
+	record, err := m.Lookup(net.ParseIP("81.2.69.142"))
+	require.NoError(t, err)
+	require.NotNil(t, record)
+	assert.Equal(t, "GB", record.Country.ISOCode, "city DB should populate country")
+}
+
+func TestDatabaseManager_Cleanup(t *testing.T) {
+	m := NewDatabaseManager()
+	require.NoError(t, m.LoadDatabase(testCountryDB))
+	require.Len(t, m.databases, 1)
+
+	require.NoError(t, m.Cleanup())
+	assert.Nil(t, m.databases, "Cleanup should clear loaded databases")
+
+	_, err := m.Lookup(net.ParseIP("8.8.8.8"))
+	require.Error(t, err)
+}

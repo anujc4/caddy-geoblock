@@ -20,7 +20,7 @@ import (
 	"sync"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 // dbPool manages MaxMind database instances across config reloads.
@@ -116,12 +116,18 @@ func (m *DatabaseManager) Lookup(ip net.IP) (*GeoRecord, error) {
 		return nil, fmt.Errorf("no databases loaded")
 	}
 
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return nil, fmt.Errorf("invalid IP address: %v", ip)
+	}
+	addr = addr.Unmap()
+
 	record := &GeoRecord{}
 	var lastErr error
 
 	for _, db := range m.databases {
 		var tempRecord GeoRecord
-		err := db.reader.Lookup(ip, &tempRecord)
+		err := db.reader.Lookup(addr).Decode(&tempRecord)
 		if err != nil {
 			lastErr = err
 			continue
