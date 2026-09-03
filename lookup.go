@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"os"
 	"sync"
 
 	"github.com/caddyserver/caddy/v2"
@@ -70,7 +71,11 @@ func (m *DatabaseManager) LoadDatabase(path string) error {
 
 	// Load or get from pool
 	val, loaded, err := dbPool.LoadOrNew(path, func() (caddy.Destructor, error) {
-		reader, err := maxminddb.Open(path)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open MaxMind database %s: %w", path, err)
+		}
+		reader, err := maxminddb.OpenBytes(data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open MaxMind database %s: %w", path, err)
 		}

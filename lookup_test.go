@@ -15,6 +15,8 @@ package caddygeoblock
 
 import (
 	"net"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -412,4 +414,42 @@ func TestDatabaseManager_Cleanup(t *testing.T) {
 
 	_, err := m.Lookup(net.ParseIP("8.8.8.8"))
 	require.Error(t, err)
+}
+
+func TestDatabaseManager_Lookup_SurvivesFileOverwrite(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "country.mmdb")
+	original, err := os.ReadFile(testCountryDB)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(dbPath, original, 0o644))
+
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+	require.NoError(t, m.LoadDatabase(dbPath))
+
+	record, err := m.Lookup(net.ParseIP("81.2.69.142"))
+	require.NoError(t, err)
+	assert.Equal(t, "GB", record.Country.ISOCode)
+
+	require.NoError(t, os.WriteFile(dbPath, []byte("not a valid mmdb file"), 0o644))
+
+	record, err = m.Lookup(net.ParseIP("81.2.69.142"))
+	require.NoError(t, err)
+	assert.Equal(t, "GB", record.Country.ISOCode)
+}
+
+func TestDatabaseManager_LoadDatabase_UsesInMemoryCopy(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "country.mmdb")
+	original, err := os.ReadFile(testCountryDB)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(dbPath, original, 0o644))
+
+	m := NewDatabaseManager()
+	t.Cleanup(func() { _ = m.Cleanup() })
+	require.NoError(t, m.LoadDatabase(dbPath))
+
+	require.NoError(t, os.Remove(dbPath))
+
+	record, err := m.Lookup(net.ParseIP("81.2.69.142"))
+	require.NoError(t, err)
+	assert.Equal(t, "GB", record.Country.ISOCode)
 }
