@@ -102,7 +102,7 @@ func TestIntegration_DenyCountries(t *testing.T) {
 			req.Header.Set("X-Forwarded-For", tt.clientIP)
 
 			resp := tester.AssertResponseCode(req, tt.expectedStatus)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }
@@ -164,7 +164,7 @@ func TestIntegration_AllowCountries(t *testing.T) {
 			req.Header.Set("X-Forwarded-For", tt.clientIP)
 
 			resp := tester.AssertResponseCode(req, tt.expectedStatus)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }
@@ -213,7 +213,7 @@ func TestIntegration_DenyTakesPrecedence(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", testIPUnitedKingdom)
 
 	resp := tester.AssertResponseCode(req, 403)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	// US should still be allowed
 	req2, err := http.NewRequest("GET", "http://localhost:8080", nil)
@@ -221,7 +221,7 @@ func TestIntegration_DenyTakesPrecedence(t *testing.T) {
 	req2.Header.Set("X-Forwarded-For", testIPUnitedStates)
 
 	resp2 := tester.AssertResponseCode(req2, 200)
-	resp2.Body.Close()
+	_ = resp2.Body.Close()
 }
 
 func TestIntegration_IPRanges(t *testing.T) {
@@ -279,7 +279,7 @@ func TestIntegration_IPRanges(t *testing.T) {
 			req.Header.Set("X-Forwarded-For", tt.clientIP)
 
 			resp := tester.AssertResponseCode(req, tt.expectedStatus)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }
@@ -329,7 +329,7 @@ func TestIntegration_MultipleDatabases(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", testIPUnitedKingdom)
 
 	resp := tester.AssertResponseCode(req, 200)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 }
 
 func TestIntegration_Placeholders(t *testing.T) {
@@ -372,7 +372,7 @@ func TestIntegration_Placeholders(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", testIPUnitedKingdom)
 
 	resp := tester.AssertResponseCode(req, 200)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	body := make([]byte, 1024)
@@ -428,7 +428,7 @@ func TestIntegration_UnknownIPHandling(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "203.0.113.1") // TEST-NET-3, not in MaxMind test DB
 
 	resp := tester.AssertResponseCode(req, 403)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 }
 
 func TestIntegration_CaddyfileConfig(t *testing.T) {
@@ -527,7 +527,7 @@ func TestIntegration_MatcherDenyCountries(t *testing.T) {
 			req.Header.Set("X-Forwarded-For", tt.clientIP)
 
 			resp := tester.AssertResponseCode(req, tt.expectedStatus)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			body := make([]byte, 1024)
 			n, _ := resp.Body.Read(body)
@@ -599,7 +599,7 @@ func TestIntegration_MatcherAllowCountries(t *testing.T) {
 			req.Header.Set("X-Forwarded-For", tt.clientIP)
 
 			resp := tester.AssertResponseCode(req, tt.expectedStatus)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }
@@ -655,7 +655,7 @@ func TestIntegration_MatcherWithPlaceholders(t *testing.T) {
 		req.Header.Set("X-Forwarded-For", testIPChina)
 
 		resp := tester.AssertResponseCode(req, 451)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		body := make([]byte, 1024)
 		n, _ := resp.Body.Read(body)
@@ -672,7 +672,7 @@ func TestIntegration_MatcherWithPlaceholders(t *testing.T) {
 		req.Header.Set("X-Forwarded-For", testIPUnitedKingdom)
 
 		resp := tester.AssertResponseCode(req, 200)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		body := make([]byte, 1024)
 		n, _ := resp.Body.Read(body)
@@ -746,7 +746,7 @@ func TestIntegration_MatcherIPRanges(t *testing.T) {
 			req.Header.Set("X-Forwarded-For", tt.clientIP)
 
 			resp := tester.AssertResponseCode(req, tt.expectedStatus)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }
